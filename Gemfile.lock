@@ -1,0 +1,17 @@
+PATH
+  remote: sinatra
+  specs:
+    sinatra (1.3.0.c)
+      rack (~> 1.2)
+      tilt (~> 1.2, >= 1.2.2)
+
+GEM
+  specs:
+    rack (1.2.2)
+    tilt (1.2.2)
+
+PLATFORMS
+  ruby
+
+DEPENDENCIES
+  sinatra!
