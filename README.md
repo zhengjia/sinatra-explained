@@ -8,9 +8,9 @@ If you need I recommend to use tux to play with sinatra https://github.com/cldwa
 It's assumed that you have read the sinatra README. Sinatra is well documented so that's the only thing you need for this tutorial.
 
 Content
-tutorial_1: sinatra start up
-tuturoal_2: extensions(work in progress)
-tutorial_3: routing(work in progress)
-tutorial_4: response
-tutorial_5: request cycle
-tutorial_6: templates
+* tutorial_1: sinatra start up(done)
+* tutorial_2: extensions(work in progress)
+* tutorial_3: routing(work in progress)
+* tutorial_4: response
+* tutorial_5: request cycle
+* tutorial_6: templates
