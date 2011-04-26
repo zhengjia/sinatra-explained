@@ -1,4 +1,4 @@
-We will start the tutorials with a simple four-line sinatra app as shown at the very bottom. The question we are going to solve in the first tutorial is: what will happen when we require sinatra? 
+We will start the tutorials with a simple four-line sinatra app as shown in classic.rb. The question we are going to solve in the first tutorial is: what will happen when we require sinatra? 
 
 To get a hint, looking at the four line app, apparently the get method is available in the context of the current app. So some methods are "imported" from sinatra to the current app. To get another hint, we create a file which only has one line: `require 'sinatra'`, and run it. We can see a server starts!
 
