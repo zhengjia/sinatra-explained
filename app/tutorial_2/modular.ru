@@ -1,2 +1,3 @@
 require File.expand_path(File.dirname(__FILE__) + '/modular')
-run Modular
+run Sinatra::Base
+#run Modular

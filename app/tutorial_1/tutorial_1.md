@@ -263,7 +263,7 @@ In the case of Rack::Handler.get('thin'), `@handlers[server]` is the string `'Ra
   end
 ```
 
-The thin handler is a class and it has a single class method. When run is called it creates a instance of `::Thin::Server`, yield to the app and let it do something, and starts the thin server with `server.start`.
+The thin handler is a class and it has a single class method `run`. We pass `self`, which is Sinatra::Application, to the `run` method; remember in at_exit method `run!` is called with `Application.run!`, hence `self` here is Sinatra::Application. When run is called it creates a instance of `::Thin::Server`, yield to the app and let it do something, and starts the thin server with `server.start`.
 
 Let's return to the `run!` method on Sinatra::Base. It outputs the information about the server it got and calls the `run` method on the handler, passing in the default binding(0.0.0.0) and port(4567) and a block. Inside the block, we specify that two signal that can end the server by calling the `quit!` method on Sinatra::Base, and then set the `running` to true which indicate the server is running. Then the control returns to run method on the Thin handler. It starts the server instance for handling requests.
 
@@ -281,5 +281,7 @@ Let's return to the `run!` method on Sinatra::Base. It outputs the information a
     puts "\n== Sinatra has ended his set (crowd applauds)" unless handler_name =~/cgi/i
   end
 ```  
+
+To sum, the sinatra DSL is available to our app through method delegation to Sinatra::Application. The server is started by passing Sinatra::Application to a rack server.
 
 This concludes our first tutorial. There are still some topics need to be talked about the server, like how requests are picked up by the server and passed to our app. We will resolve this in later tutorials. In tutorial_2.rb, we will look at high level architecture of sinatra apps and the code that support it, including other forms of sinatra apps, sinatra extensions and middleware.
