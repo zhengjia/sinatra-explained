@@ -11,7 +11,7 @@ Content:
 ________
 
 * tutorial_1: sinatra start up(done)
-* tutorial_2: extensions(work in progress)
+* tutorial_2: extensions and middleware(done)
 * tutorial_3: routing(work in progress)
 * tutorial_4: response
 * tutorial_5: request cycle
