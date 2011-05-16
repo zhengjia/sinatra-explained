@@ -315,7 +315,7 @@ Inside the block, the class method call uses `prototype` method.
   end
 ```
 
-Inside the `prototype` method it calls the `new` method, which uses the `build` method to initialize a middleware stack that is used to process requests.   
+Inside the `prototype` method it calls the `new` method if our app isn't already initialized. The `Sinatra::Base.new` uses the `build` method to initialize a middleware stack that is used to process requests.   
 
 ```ruby
   # Create a new instance of the class fronted by its middleware

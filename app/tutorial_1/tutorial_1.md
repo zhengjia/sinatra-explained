@@ -115,7 +115,11 @@ In `sinatra/lib/sintra/main.rb`, it first calls `require 'sinatra/base'` to make
     end
 ```
 
-set method is interesting but a bit complicated. There are several forms to use the set method, which helps to explain it. First one is just `set :some_option, "some_value"`. It will just be translated to `set option, Proc.new{value}`, which is exactly the second form. For the second form, it open the singleton class of the current class. In the case our classic.rb, since set is delegated Sinatra::Application, it will define three new methods on Sinatra::Application using the `metadef` private class method on Sinatra::Base. The three class methods are used as setter, getter, and question mark method. The getter is lazy evaluated, meaning content of the block is used as the method body and isn't called until the getter is called. The question mark method uses double bang to get the true/false value based on the truth of the result of the getter method. The third form is that when the setter is already defined by previous calls to the set method, then when we use set method in the first form it doesn't go through the second form and defines the getter setter and question mark element again; instead it just used the already defined setter.
+set method is interesting but a bit complicated. There are several forms to use the set method, which helps to explain it. First one is just `set :some_option, "some_value"`. It will just be translated to `set option, Proc.new{value}`, which is exactly the second form. A variation is passing a block to set like the following example. The `value` parameter defaults to self, and will be reassigned to the proc.
+
+set(:probability) { |value| condition { rand <= value } }
+
+For the second form, it open the singleton class of the current class. In the case our classic.rb, since set is delegated Sinatra::Application, it will define three new methods on Sinatra::Application using the `metadef` private class method on Sinatra::Base. In metadef, (class << self; self; end) opens the singleton class of Sinatra::Base and defines methods there. Just remember sinatra settings are defined on Sinatra::Base and not on our app.
 
 ```ruby
     def metadef(message, &block)
@@ -124,11 +128,29 @@ set method is interesting but a bit complicated. There are several forms to use 
     end
 ```
 
+The three class methods are used as setter, getter, and question mark method. The getter is lazy evaluated, meaning content of the block is used as the method body and isn't called until the getter is called. The question mark method uses double bang to get the true/false value based on the truth of the result of the getter method. The third form is that when the setter is already defined by previous calls to the set method, then when we use set method in the first form it doesn't go through the second form and defines the getter setter and question mark element again; instead it just used the already defined setter.
+
 As an example, if we have `set :inline_templates, true`, then we will have three class methods available on the Sinatra::Application: `inline_templates` which returns true, `inline_templates?` which returns true also, and `inline_templates=` which sets inline_templates to a new value. We will look at how the set method is typically used in later tutorials.
 
 The last form of set method accepts a hash and split the hash to set individual element. For example, `set :a => 'value1', :b => 'value2'` equals to two calls: `set :a => 'value1'`, and `set :b => 'value2'`
 
 Finally the set method returns self, which is the current class Sinatra::Application so other methods can be chained to set method. However I've never seen any cases this can be useful.
+
+Related to `set`, two `setting` methods are defined as instance method and class method of Sinatra::Base. The instance `setting` method does nothing but calls the class method `setting`. The class `setting` method just returns the current class. When we can call a setting getter method on current class it will go to its superclass Sinatra::Base which will fetch the setting defined on the singleton class of Sinatra::Base.
+
+```ruby
+  # Access settings defined with Base.set.
+  def self.settings
+    self
+  end
+```
+
+```ruby
+  # Access settings defined with Base.set.
+  def settings
+    self.class.settings
+  end
+```
 
 Then we come to the `caller_files` and it's associated code. caller_files is a public class method of Sinatra::Base. `CALLERS_TO_IGNORE` is a constant that defines the patterns that should be ignored from result of the `Kernel#caller`. The first regular expression is kind of special. It matches `/sinatra.rb`, `/sinatra/base.rb`, `/sinatra/main.rb`, and `/sinatra/showexceptions.rb`. `RUBY_IGNORE_CALLERS` is added to CALLERS_TO_IGNORE if it's available. caller_locations calls the Kernel#caller method, which basically returns the calling stack in the format like `/Users/zjia/code/ruby_test/caller/caller.rb:3:in '<main>'`. The `caller(1)` will ignore the top level of the calling stack, i.e., the `sinatra/lib/sinatra/main.rb` itself. Regex `/:(?=\d|in )/` matches a colon preceding a number or a string 'in', but not including the number or 'in'. For example in `/Users/zjia/code/ruby_test/caller/caller.rb:3:in '<main>'` it will match the two colons. Then `/Users/zjia/code/ruby_test/caller/caller.rb:3:in '<main>'` is splitted at the two colons and [0,2] get the first two elements of the array returned by the split, i.e., the pure file location and the line number. Finally the reject method uses the patterns in CALLERS_TO_IGNORE to remove the unwanted lines of the calling stack. The `caller_files` further removes the line number and returns only the pure file location. 
 

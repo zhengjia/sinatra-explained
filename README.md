@@ -12,7 +12,8 @@ ________
 
 * tutorial_1: sinatra start up(done)
 * tutorial_2: extensions and middleware(done)
-* tutorial_3: routing(work in progress)
-* tutorial_4: response
+* tutorial_3: routing(done)
+* tutorial_4: request and response
 * tutorial_5: request cycle
-* tutorial_6: templates
+* tutorial_6: sinatra helpers
+* tutorial_7: templates
