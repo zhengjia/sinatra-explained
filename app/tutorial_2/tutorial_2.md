@@ -66,6 +66,37 @@ Here it's a bit different from how we run a regular rack app. Normally a rack ap
 
 Now we finish the definition of a modular app, and our conclusion is that the modular style apps have nothing to do with the Sinatra::Application. A modular app is self-contained in its own scope. As a contrast the classic style app delegates it's calls to Sinatra::Application, the subclass of Sinatra::Base.
 
+There is a third way of defining a sinatra app. Sinatra.new overrides Object.new. It takes a base class , and a options hash, and a block as parameters. It looks like the options hash is never used though. The base defaults to Sinatra::Base, which makes the app an modular app, and also can be Sinatra::Application, which makes the app an classic app. Nothing special with this form, just a syntactic sugar.
+
+```ruby
+  def self.new(base=Base, options={}, &block)
+    base = Class.new(base)
+    base.class_eval(&block) if block_given?
+    base
+  end
+```
+
+Since we are here let's look at other class methods defined on the Sinatra module:
+
+```ruby
+  # Extend the top-level DSL with the modules provided.
+  def self.register(*extensions, &block)
+    Delegator.target.register(*extensions, &block)
+  end
+
+  # Include the helper modules provided in Sinatra's request context.
+  def self.helpers(*extensions, &block)
+    Delegator.target.helpers(*extensions, &block)
+  end
+
+  # Use the middleware for classic applications.
+  def self.use(*args, &block)
+    Delegator.target.use(*args, &block)
+  end
+```
+
+They are just convenient methods that are delegating the `register`, `helpers` and `use` methods to the classic form app. We will see what the three methods in later tutorials.
+
 As we discussed Sinatra::Application is split in two files. Let's list the full Sinatra::Application code here. Following code is in sinatra/lib/sinatra/main.rb, which we already discussed in detail in tutorial_1.
 
 ```ruby
