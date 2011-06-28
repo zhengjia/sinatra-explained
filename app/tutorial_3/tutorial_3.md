@@ -3,7 +3,7 @@ The question we are going to look at in this tutorial is: how routing is handled
 ```ruby
 get '/', :host_name => /^admin\./ do
   "Admin Area, Access denied!"
-end 
+end
 ```
 
 We can see we use a hash `:host_name => /^admin\./` to define a condition. `host_name` is actually a method and we use the name of the method as the key a regular expression that represents a route as the value. The route '/' will only be picked if the host name starts with "admin". You can refer to the "Conditions" section in the sinatra README for further information. Don't worry about the meaning of the `host_name` condition. You just need to know the concept of routing conditions. We will explain host_name below in this tutorial.
@@ -24,7 +24,7 @@ We know `get '/'` defines a route to the root path. Let's see the get method:
 
 The get method takes a path, an optional condition hash and a block. The questions we have with this method are: 1. what is the instance variable @conditions? 2. why it's duplicated(@conditions.dup) and then set back(on line 4)? 3. what does the `route` method do?
 
-Let's grep on @conditions, and we find the following `condition` method relevant. The `condition` method takes a block as a proc and add it to @conditions, an array of procs. With this information, although we don't know exactly how, we can guess that `route('GET', path, opts, &block)` will modify @conditions, and we want to use the same @conditions that we used to for 'GET' to define 'HEAD', so we need to set it back. Initially both in classic and modular sinatra app, the @conditions is set to an empty array by `Sinatra::Base.reset!`. 
+Let's grep on @conditions, and we find the following `condition` method relevant. The `condition` method takes a block as a proc and add it to @conditions, an array of procs. With this information, although we don't know exactly how, we can guess that `route('GET', path, opts, &block)` will modify @conditions, and we want to use the same @conditions that we used to for 'GET' to define 'HEAD', so we need to set it back. Initially both in classic and modular sinatra app, the @conditions is set to an empty array by `Sinatra::Base.reset!`.
 
 ```ruby
   # Add a route condition. The route is considered non-matching when the block returns false.
@@ -51,16 +51,16 @@ Similarly other http methods are defined.
     # Because of self.options.host
     host_name(options.delete(:host)) if options.key?(:host)
     enable :empty_path_info if path == "" and empty_path_info.nil?
-  
+
     block, pattern, keys, conditions = compile! verb, path, block, options
     invoke_hook(:route_added, verb, path, block)
-  
+
     (@routes[verb] ||= []).
       push([pattern, keys, conditions, block]).last
   end
 ```
 
-Before we delve into the route method, let's look at the methods it uses. 
+Before we delve into the route method, let's look at the methods it uses.
 
 `Sinatra::Base.host_name` is a private method that defines a routing condition by using the `condition` method we just discussed. If you look at the source code annotation for the condition method: "The route is considered non-matching when the block returns false", we can know that if the block { pattern === request.host } returns true, then the condition is considered satisfied, and vice versa. In the block, it references request, which is is an attr_accessor on Sinatra::Base, and an instance of the `Sinatra::Request < Rack::Request`. We will look at Sinatra::Request in detail in other tutorials. `request.host` is the host part without port number of user's requested url. As an simple example, if we specify a host option in the get like `get '/', :host => 'test.smokyapp.com'`, it will only match the route '/' if the request is something like http://test.smokyapp.com. It will not match '/' if the request is http://test2.smokyapp.com. So when `host_name` is called with a regular expression as the path pattern, proc{ pattern === request.host } will be added to the @conditions.
 
@@ -71,7 +71,7 @@ Before we delve into the route method, let's look at the methods it uses.
   end
 ```
 
-Next is the enable method. As we have seen in tutorial 1, it's a class method in Sinatra::Base and is delegated in Sinatra::Delegator. It's just a convenient method to the `set` method that sets a array of settings as true. 
+Next is the enable method. As we have seen in tutorial 1, it's a class method in Sinatra::Base and is delegated in Sinatra::Delegator. It's just a convenient method to the `set` method that sets a array of settings as true.
 
 ```ruby
   # Same as calling `set :option, true` for each of the given options.
@@ -84,19 +84,19 @@ One interesting thing to note is that in sinatra/sinatra.rb, `enable :inline_tem
 
 Now we know what does the enable method do, we come back to the route method. We've already seen host_name defines a routing condition. Then it calls `enable :empty_path_info`, i.e., set empty_path_info to true to if the path param is an empty string and if `empty_path_info` setting is not already true. Note `set :empty_path_info, nil` is called Sinatra::Base's class definition, so by default empty_path_info is nil. empty_path_info is set to true the first time you give give an empty string as the path param. Then as we can see later when routing is processed if empty_path_info is true it will use '/' as the route.
 
-Next the Sinatra::Base.compile! is called with all the params passed to route. 
+Next the Sinatra::Base.compile! is called with all the params passed to route.
 
 ```ruby
   def compile!(verb, path, block, options = {})
     options.each_pair { |option, args| send(option, *args) }
     method_name = "#{verb} #{path}"
-  
+
     define_method(method_name, &block)
     unbound_method          = instance_method method_name
     pattern, keys           = compile(path)
     conditions, @conditions = @conditions, []
     remove_method method_name
-  
+
     [ block.arity != 0 ?
         proc { unbound_method.bind(self).call(*@block_params) } :
         proc { unbound_method.bind(self).call },
@@ -118,21 +118,21 @@ Here we first use set to define a routing condition named probability. A method 
 Next it defines a method with method names like "GET /" and with the method body as the block passed in. The method are defined as class methods on Sinatra::Base. The line unbound_method = instance_method method_name is interesting. Before I see it I only know instance_method can extract an unbound method from a class's instance methods. But it actually just finds and extracts a method from the current scope, no matter it's an instance method or a class methods. Here we extract the method that's just defined to the local variable unbound_method. The method is later removed with remove_method method_name. Before we look into why it does that, let's first look at the `compile` method. The `compile(path)` returns an array with two elements path and keys. As we can see path and keys are return from the `compile` method and are stored as part of the route information. Let's see what does `compile` do in detail.
 
 According to the method, the path can be of 4 forms: it responds to to_str, indicating it's a string, responds to keys and match, responds to names and match, and responds to match only, indicating it's a regular expression.
-  
+
 First let's look at the most common case where path is a string. To know what does the compile method do, it's good to see some examples first. We know compile accepts a path param, and return array of pattern and keys. Let's pop up irb and see four examples:
 
 ruby-1.9.2-p180 :002 > Sinatra::Base.send(:compile, "/")
- => [/^\/$/, []] 
-ruby-1.9.2-p180 :003 > Sinatra::Base.send(:compile, "/a*") 
- => [/^\/a(.*?)$/, ["splat"]] 
+ => [/^\/$/, []]
+ruby-1.9.2-p180 :003 > Sinatra::Base.send(:compile, "/a*")
+ => [/^\/a(.*?)$/, ["splat"]]
 ruby-1.9.2-p180 :004 > Sinatra::Base.send(:compile, "/a/:boo")
- => [/^\/a\/([^\/?#]+)$/, ["boo"]] 
+ => [/^\/a\/([^\/?#]+)$/, ["boo"]]
 ruby-1.9.2-p180 :005 > Sinatra::Base.send(:compile,"/a/:boo/*.pdf")
  => [/^\/a\/([^\/?#]+)\/(.*?)\.pdf$/, ["boo", "splat"]]
- 
-If you haven't already realize it, the returned array contains a regular expression as the pattern that will be used to match a request url to a route, and keys are the name of the params. We can verify it with the last example. /^\/a\/([^\/?#]+)\/(.*?)\.pdf$/ matches requests start with '/a/' and then all string that's not in '\/?#' as the param[:boo] and then a '/' preceding any string preceding '.pdf' as the param[:splat]. 
 
-Let's see how the matched string in a url is stored into keys. The regular expression /((:\w+)|[\*#{special_chars.join}])/ is the key here. It equals to /((:\w+)|[\*.+()$])/, which will match a word starting with semicolon, or any of the following punctuations '*.+()$'. gsub tries to match the string as many times as it can. If the match is *, like the case when path is "/a*", then 'splat' is added to the key, and * is substituded for (.*?). If any of the special_chars is matched, then the key is not changed, and pattern is the escaped special_char. Otherwise, the key is the matched word without the starting semicolon, and the matched word is substituted for ([^/?#]+). Notice that if there are multiple matches for *, they are added in order to param[:splat]. Examples from sinatra doc: 
+If you haven't already realize it, the returned array contains a regular expression as the pattern that will be used to match a request url to a route, and keys are the name of the params. We can verify it with the last example. /^\/a\/([^\/?#]+)\/(.*?)\.pdf$/ matches requests start with '/a/' and then all string that's not in '\/?#' as the param[:boo] and then a '/' preceding any string preceding '.pdf' as the param[:splat].
+
+Let's see how the matched string in a url is stored into keys. The regular expression /((:\w+)|[\*#{special_chars.join}])/ is the key here. It equals to /((:\w+)|[\*.+()$])/, which will match a word starting with semicolon, or any of the following punctuations '*.+()$'. gsub tries to match the string as many times as it can. If the match is *, like the case when path is "/a*", then 'splat' is added to the key, and * is substituded for (.*?). If any of the special_chars is matched, then the key is not changed, and pattern is the escaped special_char. Otherwise, the key is the matched word without the starting semicolon, and the matched word is substituted for ([^/?#]+). Notice that if there are multiple matches for *, they are added in order to param[:splat]. Examples from sinatra doc:
 
 ```ruby
 get '/say/*/to/*' do
@@ -146,7 +146,7 @@ get '/download/*.*' do
 end
 ```
 
-In the case of path is a regular expression, it will just return the regular expression itself as the first element 'pattern' of the array, and the empty array 'keys' as the second element of the array. 
+In the case of path is a regular expression, it will just return the regular expression itself as the first element 'pattern' of the array, and the empty array 'keys' as the second element of the array.
 
 ```ruby
   def compile(path)
@@ -190,11 +190,11 @@ You can define a custom class like RegexpLookAlike and the path like RegexpLookA
         ["this", "is", "a", "test"]
       end
     end
-  
+
     def match(string)
       ::RegexpLookAlike::MatchData.new if string == "/this/is/a/test/"
     end
-  
+
     def keys
       ["one", "two", "three", "four"]
     end
@@ -213,7 +213,7 @@ class Base
     attr_accessor :routes
   end
   @routes = {}
-  class << self    
+  class << self
     def get path, &block
       @routes[path] = block
     end
@@ -238,17 +238,17 @@ class Base
     attr_accessor :routes
   end
   @routes = {}
-  
+
   def a_helper
     "a message from a_helper"
   end
-  
-  class << self    
+
+  class << self
     def get path, &block
       @routes[path] = block
     end
   end
-  
+
 end
 
 Base.get '/' do
@@ -269,11 +269,11 @@ class Base
     attr_accessor :routes
   end
   @routes = {}
-  
+
   def a_helper
     "a message from a_helper"
   end
-  
+
   class << self
     def get path, &block
       define_method "a_route", &block
@@ -281,7 +281,7 @@ class Base
       @routes[path] = proc { unbound_method.bind(self).call }
     end
   end
-  
+
 end
 
 Base.get '/' do
@@ -300,22 +300,22 @@ get '/hello/:name' do |n|
   "Hello #{n}!"
 end
 
-*@block_params will be passed in as parameter. Note the @block_params is not available here, but that's fine because it's not evaluated yet. 
+*@block_params will be passed in as parameter. Note the @block_params is not available here, but that's fine because it's not evaluated yet.
 
 The compile! method finishes and four pieces of information is returned to the`route` method: the route method which wrapped in a proc, route pattern, parameter keys, conditions which is an array of proc. The four pieces are assigned to variable block, pattern, keys, conditions respectively.
 
 Let's see an example of the `compile!`. I use the sourcify gem https://github.com/ngty/sourcify to lookup the proc.
 ruby-1.9.2-p180 :001 > require 'sinatra'
- => true 
+ => true
 ruby-1.9.2-p180 :002 > require 'sourcify'
- => true 
+ => true
 ruby-1.9.2-p180 :003 > arr = Sinatra::Base.send :compile!,'GET', '/', proc{"abc"}, :host_name => /admin/
- => [#<Proc:0x000001022fbf40@/Users/zjia/.rvm/gems/ruby-1.9.2-p180/gems/sinatra-1.2.3/lib/sinatra/base.rb:1165>, /^\/$/, [], [#<Proc:0x000001022fc558@/Users/zjia/.rvm/gems/ruby-1.9.2-p180/gems/sinatra-1.2.3/lib/sinatra/base.rb:1088>]] 
+ => [#<Proc:0x000001022fbf40@/Users/zjia/.rvm/gems/ruby-1.9.2-p180/gems/sinatra-1.2.3/lib/sinatra/base.rb:1165>, /^\/$/, [], [#<Proc:0x000001022fc558@/Users/zjia/.rvm/gems/ruby-1.9.2-p180/gems/sinatra-1.2.3/lib/sinatra/base.rb:1088>]]
 ruby-1.9.2-p180 :004 > arr.first.to_source
- => "proc { unbound_method.bind(self).call }" 
+ => "proc { unbound_method.bind(self).call }"
 ruby-1.9.2-p180 :005 > arr.last.collect(&:to_source)
- => ["proc { pattern.===(request.host) }"] 
-ruby-1.9.2-p180 :006 > 
+ => ["proc { pattern.===(request.host) }"]
+ruby-1.9.2-p180 :006 >
 
 Next let's look at the `invoke_hook` method. The first argument name is :route_added, and args is an array [verb, path, block]. What does `invoke_hook` do is to call the `extensions` method to get all extensions on the current app and its superclasses. For each of the extensions if the `route_added` method exists on the extension then it calls it as a callback method.
 
@@ -331,12 +331,12 @@ Let's see an example of the routes added.
 
 ruby-1.9.2-p180 :002 > get '/:action', :host_name => /^admin\./ do
 ruby-1.9.2-p180 :003 >       "Admin Area, Access denied!"
-ruby-1.9.2-p180 :004?>   end 
- => [/^\/([^\/?#]+)$/, ["action"], [#<Proc:0x00000101b090d0@/Users/zjia/.rvm/gems/ruby-1.9.2-p180/gems/sinatra-1.2.3/lib/sinatra/base.rb:1088>], #<Proc:0x00000101b086f8@/Users/zjia/.rvm/gems/ruby-1.9.2-p180/gems/sinatra-1.2.3/lib/sinatra/base.rb:1165>] 
+ruby-1.9.2-p180 :004?>   end
+ => [/^\/([^\/?#]+)$/, ["action"], [#<Proc:0x00000101b090d0@/Users/zjia/.rvm/gems/ruby-1.9.2-p180/gems/sinatra-1.2.3/lib/sinatra/base.rb:1088>], #<Proc:0x00000101b086f8@/Users/zjia/.rvm/gems/ruby-1.9.2-p180/gems/sinatra-1.2.3/lib/sinatra/base.rb:1165>]
 ruby-1.9.2-p180 :005 > get '/download/*.*' do
 ruby-1.9.2-p180 :006 >       params[:splat]
 ruby-1.9.2-p180 :007?>   end
- => [/^\/download\/(.*?)\.(.*?)$/, ["splat", "splat"], [], #<Proc:0x00000101afb7a0@/Users/zjia/.rvm/gems/ruby-1.9.2-p180/gems/sinatra-1.2.3/lib/sinatra/base.rb:1165>] 
+ => [/^\/download\/(.*?)\.(.*?)$/, ["splat", "splat"], [], #<Proc:0x00000101afb7a0@/Users/zjia/.rvm/gems/ruby-1.9.2-p180/gems/sinatra-1.2.3/lib/sinatra/base.rb:1165>]
 ruby-1.9.2-p180 :008 > Sinatra::Application.routes
  => {"GET"=>[[/^\/([^\/?#]+)$/, ["action"], [#<Proc:0x00000101b09cd8@/Users/zjia/.rvm/gems/ruby-1.9.2-p180/gems/sinatra-1.2.3/lib/sinatra/base.rb:1088>], #<Proc:0x00000101b09378@/Users/zjia/.rvm/gems/ruby-1.9.2-p180/gems/sinatra-1.2.3/lib/sinatra/base.rb:1165>], [/^\/download\/(.*?)\.(.*?)$/, ["splat", "splat"], [], #<Proc:0x00000101afc448@/Users/zjia/.rvm/gems/ruby-1.9.2-p180/gems/sinatra-1.2.3/lib/sinatra/base.rb:1165>]], "HEAD"=>[[/^\/([^\/?#]+)$/, ["action"], [#<Proc:0x00000101b090d0@/Users/zjia/.rvm/gems/ruby-1.9.2-p180/gems/sinatra-1.2.3/lib/sinatra/base.rb:1088>], #<Proc:0x00000101b086f8@/Users/zjia/.rvm/gems/ruby-1.9.2-p180/gems/sinatra-1.2.3/lib/sinatra/base.rb:1165>], [/^\/download\/(.*?)\.(.*?)$/, ["splat", "splat"], [], #<Proc:0x00000101afb7a0@/Users/zjia/.rvm/gems/ruby-1.9.2-p180/gems/sinatra-1.2.3/lib/sinatra/base.rb:1165>]]}
 
@@ -366,7 +366,7 @@ Besides routes we can define filters that are processed before or after a reques
       process_route(*arguments) { instance_eval(&block) }
     end
   end
-``` 
+```
 
 Suppose we add a before filter without a path, so that it will be run before every request.
 
@@ -375,11 +375,11 @@ before '/foo/*' do
   @note = 'Hi!'
   request.path_info = '/foo/bar/baz'
 end
-``` 
+```
 
-In the `add_filter` the block of the before filter is added to the filters[:before] hash. If there is no path, which means it doesn't need to be routed, then `add_filter` is just returned with the filters[:before] hash. Next if path is a hash, which means the path is a condition, then the path is set to `//` which will match any routes, and options is set to the condition. Then `compile!(type, path, block, options)` is called. We get the pattern, keys, conditions from `compile!` and assign them to an array `argument`. After that `add_filter` is called again with only the `type` and a block as the parameters. `add_filter` then adds the block to `filters[type]` and returns. So the filters[:before] and filters[:after] are two proc arrays. Now let's see the block passed to `add_filter`. In the block it calls `process_route(*arguments) { instance_eval(&block) }`. `process_route` is a pretty big method. 
+In the `add_filter` the block of the before filter is added to the filters[:before] hash. If there is no path, which means it doesn't need to be routed, then `add_filter` is just returned with the filters[:before] hash. Next if path is a hash, which means the path is a condition, then the path is set to `//` which will match any routes, and options is set to the condition. Then `compile!(type, path, block, options)` is called. We get the pattern, keys, conditions from `compile!` and assign them to an array `argument`. After that `add_filter` is called again with only the `type` and a block as the parameters. `add_filter` then adds the block to `filters[type]` and returns. So the filters[:before] and filters[:after] are two proc arrays. Now let's see the block passed to `add_filter`. In the block it calls `process_route(*arguments) { instance_eval(&block) }`. `process_route` is a pretty big method.
 
-It first make a copy of `@params`. We can see `@params` is assigned back to `original_params` in the ensure block at the end of `process_route` method. So `params` will be modified in `process_route` and we want it to be the same after `process_route` returns. `:params` is an attr_accessor defined on Sinatra::Base: `attr_accessor :env, :request, :response, :params`. 
+It first make a copy of `@params`. We can see `@params` is assigned back to `original_params` in the ensure block at the end of `process_route` method. So `params` will be modified in `process_route` and we want it to be the same after `process_route` returns. `:params` is an attr_accessor defined on Sinatra::Base: `attr_accessor :env, :request, :response, :params`.
 
 ```ruby
   # If the current request matches pattern and conditions, fill params
@@ -591,35 +591,37 @@ If a route is matched, `route_eval` is called, which evaluates the route process
 
 The :halt terminates further processing of other possible routes. :halt is caught in the `Sinatra::Base#invoke`. Remember `dispatch!` is wrapped in `invoke { dispatch! }`. So the block passed to invoke is run by `instance_eval` and the result is used to generate the response.
 
-# Run the block with 'throw :halt' support and apply result to the response.
-def invoke(&block)
-  res = catch(:halt) { instance_eval(&block) }
-  return if res.nil?
+```
+  # Run the block with 'throw :halt' support and apply result to the response.
+  def invoke(&block)
+    res = catch(:halt) { instance_eval(&block) }
+    return if res.nil?
 
-  case
-  when res.respond_to?(:to_str)
-    @response.body = [res]
-  when res.respond_to?(:to_ary)
-    res = res.to_ary
-    if Fixnum === res.first
-      if res.length == 3
-        @response.status, headers, body = res
-        @response.body = body if body
-        headers.each { |k, v| @response.headers[k] = v } if headers
-      elsif res.length == 2
-        @response.status = res.first
-        @response.body   = res.last
+    case
+    when res.respond_to?(:to_str)
+      @response.body = [res]
+    when res.respond_to?(:to_ary)
+      res = res.to_ary
+      if Fixnum === res.first
+        if res.length == 3
+          @response.status, headers, body = res
+          @response.body = body if body
+          headers.each { |k, v| @response.headers[k] = v } if headers
+        elsif res.length == 2
+          @response.status = res.first
+          @response.body   = res.last
+        else
+          raise TypeError, "#{res.inspect} not supported"
+        end
       else
-        raise TypeError, "#{res.inspect} not supported"
+        @response.body = res
       end
-    else
+    when res.respond_to?(:each)
       @response.body = res
+    when (100..599) === res
+      @response.status = res
     end
-  when res.respond_to?(:each)
-    @response.body = res
-  when (100..599) === res
-    @response.status = res
-  end
 
-  res
-end
+    res
+  end
+```
