@@ -591,7 +591,7 @@ If a route is matched, `route_eval` is called, which evaluates the route process
 
 The :halt terminates further processing of other possible routes. :halt is caught in the `Sinatra::Base#invoke`. Remember `dispatch!` is wrapped in `invoke { dispatch! }`. So the block passed to invoke is run by `instance_eval` and the result is used to generate the response.
 
-```
+```ruby
   # Run the block with 'throw :halt' support and apply result to the response.
   def invoke(&block)
     res = catch(:halt) { instance_eval(&block) }
