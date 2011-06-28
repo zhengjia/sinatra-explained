@@ -1,8 +1,8 @@
-We will start the tutorials with a simple four-line sinatra app as shown in classic.rb. The question we are going to solve in the first tutorial is: what will happen when we require sinatra? 
+We will start the tutorials with a simple four-line sinatra app as shown in classic.rb. The question we are going to solve in the first tutorial is: what will happen when we require sinatra?
 
 To get a hint, looking at the four line app, apparently the get method is available in the context of the current app. So some methods are "imported" from sinatra to the current app. To get another hint, we create a file which only has one line: `require 'sinatra'`, and run it. We can see a server starts!
 
-This brings out two areas we are going to cover: method lookup and and server startup in sinatra.
+This brings out two areas we are going to cover: method lookup and server startup in sinatra.
 
 First let's see where the get method is defined. get is a class method of Sinatra::Base. Since it's available at the top level in the current app, it can either be a class method or an instance method defined at the top level main object. Let's see which case it is and how get becomes available in the current app. (In case you don't know, methods defined on the top level becomes private instance methods of Object class; class methods defined on top level become singleton methods on the main object, which is an instance of Object.)
 
@@ -11,16 +11,16 @@ If you look at `sinatra/lib/sinatra.rb`, which is the file that is required by t
 ```ruby
   libdir = File.dirname(__FILE__)
   $LOAD_PATH.unshift(libdir) unless $LOAD_PATH.include?(libdir)
-  
+
   require 'sinatra/base'
   require 'sinatra/main'
-  
+
   enable :inline_templates
 ```
 
-First two lines add sinatra/lib to $LOAD_PATH. Then `sinatra/lib/sinatra/base.rb`, which is the file contains majority of the code, and `sinatra/lib/sinatra/main.rb` are required. `sinatra/lib/sinatra/base.rb` has a lot of classes and modules defined: `Sinatra::Base`, `Sinatra::Request`, `Sinatra::Response`, `Sinatra::NotFound`, `Sinatra::Helpers`, `Sinatra::Templates`, `Sinatra::Application`, and `Sinatra::Delegator`; among them `Sinatra::Application` is a subclass of `Sinatra::Base`, and it is opened and further defined by `sinatra/lib/sinatra/main.rb`. 
+First two lines add sinatra/lib to $LOAD_PATH. Then `sinatra/lib/sinatra/base.rb`, which is the file contains majority of the code, and `sinatra/lib/sinatra/main.rb` are required. `sinatra/lib/sinatra/base.rb` has a lot of classes and modules defined: `Sinatra::Base`, `Sinatra::Request`, `Sinatra::Response`, `Sinatra::NotFound`, `Sinatra::Helpers`, `Sinatra::Templates`, `Sinatra::Application`, and `Sinatra::Delegator`; among them `Sinatra::Application` is a subclass of `Sinatra::Base`, and it is opened and further defined by `sinatra/lib/sinatra/main.rb`.
 
-By looking at the top level code, the whole sinatra/base is inside the Sinatra module, so it can be safely passed at this step because it is in it's own scope and can't be automatically hooked to our app. There are two other possibilities: `enable :inline_templates` on the last line of `sinatra/lib/sinatra.rb`, and `include Sinatra::Delegator` on the last line of `sinatra/lib/sinatra/main.rb`. If you grep on 'def enable', it's a class methods of Sinatra::Base. It looks like it has nothing to do with the get method. The only hope is this line: `include Sinatra::Delegator`. We can see :get is passed in as a parameter to the `delegate` method, which looks promising. Let's look at this module in detail. 
+By looking at the top level code, the whole sinatra/base is inside the Sinatra module, so it can be safely passed at this step because it's in its own scope and can't be automatically hooked to our app. There are two other possibilities: `enable :inline_templates` on the last line of `sinatra/lib/sinatra.rb`, and `include Sinatra::Delegator` on the last line of `sinatra/lib/sinatra/main.rb`. If you grep on 'def enable', it's a class methods of Sinatra::Base. It looks like it has nothing to do with the get method. The only hope is this line: `include Sinatra::Delegator`. We can see :get is passed in as a parameter to the `delegate` method, which looks promising. Let's look at this module in detail.
 
 Sinatra::Delegator is a module defined in Sinatra::Base:
 
@@ -39,41 +39,41 @@ Sinatra::Delegator is a module defined in Sinatra::Base:
         RUBY
       end
     end
-  
+
     delegate :get, :patch, :put, :post, :delete, :head, :options, :template, :layout,
              :before, :after, :error, :not_found, :configure, :set, :mime_type,
              :enable, :disable, :use, :development?, :test?, :production?,
              :helpers, :settings
-  
+
     class << self
       attr_accessor :target
     end
-  
+
     self.target = Application
   end
 ```
 
 When I try to find the executing path of an app or library, I'd look at the hook methods like `Module#included`, `Class#inherited`. But Sinatra::Delegator doesn't have any of those. We know when include 'SomeModule' is called, all instance methods of SomeModule are included in the calling class. At a glance it seems there is no instance methods in Sinatra::Delegator, which is false. I would then look at code that's run immediately, i.e., code not in method definitions. Here the delegate method is run when `require 'sinatra/base'` is called. The delegate method defines on Sinatra::Delegator a bunch of private instance methods including the get method. Note that the scope inside `self.delegate` is still the Delegator class; the newly defined methods become instance methods of Sinatra::Delegator, instead of class methods of `Sinatra::Delegator`. When include Sinatra::Delegator is called these instance methods are included to the top level of current app. This answers the question we asked: the `get` method is available to the current app as an instance method.
 
-The technique used here is to dynamically define a new set of instance methods, include them as instance methods to the current app, and then delegate calls to them to the corresponding class methods on `Sinatra::Delegator.target`, i.e. `Sinatra::Application`. Since Sinatra::Application is a subclass of Sinatra::Base, it has all the class methods of Sinatra::Base. If you are not familiar with the eval syntax, here is a good reference http://olabini.com/blog/2008/01/ruby-antipattern-using-eval-without-positioning-information/. Otherwise the syntax in the Delegator module is straitforward. The reason we have the Sinatra::Delegator module is that it picks some of the class methods from Sinatra::Base and make them available to the current app. Finally the source code annotation at the top of the Delegator module makes sense, and we know why get is available in the current app. We will explain other delegated methods defined here in later tutorials as we encounter them.
+The technique used here is to dynamically define a new set of instance methods, include them as instance methods to the current app, and then delegate calls to them to the corresponding class methods on `Sinatra::Delegator.target`, i.e. `Sinatra::Application`. Since Sinatra::Application is a subclass of Sinatra::Base, it has all the class methods of Sinatra::Base. If you are not familiar with the eval syntax, here is a good reference http://olabini.com/blog/2008/01/ruby-antipattern-using-eval-without-positioning-information/. Otherwise the syntax in the Delegator module is straightforward. The reason we have the Sinatra::Delegator module is that it picks some of the class methods from Sinatra::Base and make them available to the current app. Finally the source code annotation at the top of the Delegator module makes sense, and we know why get is available in the current app. We will explain other delegated methods defined here in later tutorials as we encounter them.
 
 After we define a route with the get method, the server starts. Let's see how that happens. There are a lot of default settings going on and we only look at some of them for now.
 
-It all starts with the `at_exit` method in `sinatra/lib/sintra/main.rb`. at_exit is a `Kernal` method that runs the block when the current app exits. 
+It all starts with the `at_exit` method in `sinatra/lib/sintra/main.rb`. at_exit is a `Kernal` method that runs the block when the current app exits.
 
 ```ruby
   require 'sinatra/base'
-  
+
   module Sinatra
     class Application < Base
-  
+
       # we assume that the first file that requires 'sinatra' is the
       # app_file. all other path related options are calculated based
       # on this path by default.
       set :app_file, caller_files.first || $0
-  
+
       set :run, Proc.new { $0 == app_file }
-  
+
       if run? && ARGV.any?
         require 'optparse'
         OptionParser.new { |op|
@@ -85,10 +85,10 @@ It all starts with the `at_exit` method in `sinatra/lib/sintra/main.rb`. at_exit
         }.parse!(ARGV.dup)
       end
     end
-  
+
     at_exit { Application.run! if $!.nil? && Application.run? }
   end
-  
+
   include Sinatra::Delegator
 ```
 
@@ -152,9 +152,9 @@ Related to `set`, two `setting` methods are defined as instance method and class
   end
 ```
 
-Then we come to the `caller_files` and it's associated code. caller_files is a public class method of Sinatra::Base. `CALLERS_TO_IGNORE` is a constant that defines the patterns that should be ignored from result of the `Kernel#caller`. The first regular expression is kind of special. It matches `/sinatra.rb`, `/sinatra/base.rb`, `/sinatra/main.rb`, and `/sinatra/showexceptions.rb`. `RUBY_IGNORE_CALLERS` is added to CALLERS_TO_IGNORE if it's available. caller_locations calls the Kernel#caller method, which basically returns the calling stack in the format like `/Users/zjia/code/ruby_test/caller/caller.rb:3:in '<main>'`. The `caller(1)` will ignore the top level of the calling stack, i.e., the `sinatra/lib/sinatra/main.rb` itself. Regex `/:(?=\d|in )/` matches a colon preceding a number or a string 'in', but not including the number or 'in'. For example in `/Users/zjia/code/ruby_test/caller/caller.rb:3:in '<main>'` it will match the two colons. Then `/Users/zjia/code/ruby_test/caller/caller.rb:3:in '<main>'` is splitted at the two colons and [0,2] get the first two elements of the array returned by the split, i.e., the pure file location and the line number. Finally the reject method uses the patterns in CALLERS_TO_IGNORE to remove the unwanted lines of the calling stack. The `caller_files` further removes the line number and returns only the pure file location. 
+Then we come to the `caller_files` and it's associated code. caller_files is a public class method of Sinatra::Base. `CALLERS_TO_IGNORE` is a constant that defines the patterns that should be ignored from result of the `Kernel#caller`. The first regular expression is kind of special. It matches `/sinatra.rb`, `/sinatra/base.rb`, `/sinatra/main.rb`, and `/sinatra/showexceptions.rb`. `RUBY_IGNORE_CALLERS` is added to CALLERS_TO_IGNORE if it's available. caller_locations calls the Kernel#caller method, which basically returns the calling stack in the format like `/Users/zjia/code/ruby_test/caller/caller.rb:3:in '<main>'`. The `caller(1)` will ignore the top level of the calling stack, i.e., the `sinatra/lib/sinatra/main.rb` itself. Regex `/:(?=\d|in )/` matches a colon preceding a number or a string 'in', but not including the number or 'in'. For example in `/Users/zjia/code/ruby_test/caller/caller.rb:3:in '<main>'` it will match the two colons. Then `/Users/zjia/code/ruby_test/caller/caller.rb:3:in '<main>'` is splitted at the two colons and [0,2] get the first two elements of the array returned by the split, i.e., the pure file location and the line number. Finally the reject method uses the patterns in CALLERS_TO_IGNORE to remove the unwanted lines of the calling stack. The `caller_files` further removes the line number and returns only the pure file location.
 
-We return to the line `set :app_file, caller_files.first || $0`. As the source annotation says, `caller_files.first` is the file that calls `require 'sinatra'`. As we talked, when `require 'sinatra'` is called, it requires sinatra/lib/sinatra.rb, which requires sinatra/lib/sinatra/main.rb. sinatra/lib/sinatra.rb and /sinatra/lib/sinatra/main.rb are in the ignored patterns so they are removed from caller_files. Then the first element in the array should be the one that contains the `requires 'sinatra'`. Here I think `caller(1)` in caller_locations is not necessary because the top level of the calling stack sinatra/lib/sinatra/main.rb is in the ignored pattern. If caller_files is an empty array, which is possible when the file is located in the ignored paths, then the current running file stored in $0 is set as the the `app_file`. `app_file` stores the root path of the sinatra project and locations of other files are based on it.
+We return to the line `set :app_file, caller_files.first || $0`. As the source annotation says, `caller_files.first` is the file that calls `require 'sinatra'`. As we talked, when `require 'sinatra'` is called, it requires sinatra/lib/sinatra.rb, which requires sinatra/lib/sinatra/main.rb. sinatra/lib/sinatra.rb and /sinatra/lib/sinatra/main.rb are in the ignored patterns so they are removed from caller_files. Then the first element in the array should be the one that contains the `requires 'sinatra'`. Here I think `caller(1)` in caller_locations is not necessary because the top level of the calling stack sinatra/lib/sinatra/main.rb is in the ignored pattern. If caller_files is an empty array, which is possible when the file is located in the ignored paths, then the current running file stored in $0 is set as the `app_file`. `app_file` stores the root path of the sinatra project and locations of other files are based on it.
 
 ```ruby
   CALLERS_TO_IGNORE = [ # :nodoc:
@@ -184,13 +184,13 @@ We return to the line `set :app_file, caller_files.first || $0`. As the source a
       map    { |line| line.split(/:(?=\d|in )/)[0,2] }.
       reject { |file,line| CALLERS_TO_IGNORE.any? { |pattern| file =~ pattern } }
   end
-```  
+```
 
 Next line `set :run, Proc.new { $0 == app_file }` defines three singleton methods on Sinatra::Base. The `run` and `run?` methods do the same thing: if the current running file is the `app_file` we just set, i.e. the current file does `require 'sinatra'`, then it will return true. `run=` setter is also defined on Sinatra::Base, but I don't think it's used. In fact only `run?` is used to determine whether to run the app now or not. The reason to have `run?` is that it's possible that one app can be used as a middleware and should not be run when it requires sinatra, or in the case a project has multiple files that require sinatra, only the file run in the command line should run the server.
 
 Now we come to the option parsing. If the current app is supposed to be run and any arguments are passed in to run it, sinatra will set those settings based on the passed in arguments. You can refer to the full list of the available settings in the "Available Settings" section in sinatra doc. The option parsing is pretty standard and I will just include a reference here http://ruby-doc.org/stdlib/libdoc/optparse/rdoc/classes/OptionParser.html
 
-Finally we come to `at_exit { Application.run! if $!.nil? && Application.run? }`. $!.nil? ensures there is no exceptions raised at this point. Let's look at the run! method. It's defined as a class method of Sinatra::Base. It can optionally accept a hash of options and set them on Sinatra::Base. 
+Finally we come to `at_exit { Application.run! if $!.nil? && Application.run? }`. $!.nil? ensures there is no exceptions raised at this point. Let's look at the run! method. It's defined as a class method of Sinatra::Base. It can optionally accept a hash of options and set them on Sinatra::Base.
 
 ```ruby
   # Run the Sinatra app as a self-hosted server using
@@ -210,7 +210,7 @@ Finally we come to `at_exit { Application.run! if $!.nil? && Application.run? }`
   end
 ```
 
-Then it tries to get a rack compatible server to run the app by calling `detect_rack_handler`. detect_rack_handler uses either the default array defined by `set :server, %w[thin mongrel webrick]`, or the server option passed in by arguments when running the app, as the parameter to `Rack::Handler.get`. A set of server handlers are predefined by rack to abstract the difference of servers so any rack server can be just run by calling `some_handler.run(myapp)`. You can also define your customized server handler. We will see an example of handler below. As soon as a server handler is found Rack::Handler.get will return it. Assuming we are running `Rack::Handler.get('thin')` and let's see what does it do. 
+Then it tries to get a rack compatible server to run the app by calling `detect_rack_handler`. detect_rack_handler uses either the default array defined by `set :server, %w[thin mongrel webrick]`, or the server option passed in by arguments when running the app, as the parameter to `Rack::Handler.get`. A set of server handlers are predefined by rack to abstract the difference of servers so any rack server can be just run by calling `some_handler.run(myapp)`. You can also define your customized server handler. We will see an example of handler below. As soon as a server handler is found Rack::Handler.get will return it. Assuming we are running `Rack::Handler.get('thin')` and let's see what does it do.
 
 ```ruby
   def detect_rack_handler
@@ -226,13 +226,13 @@ Then it tries to get a rack compatible server to run the app by calling `detect_
   end
 ```
 
-@handlers is an hash contains all the server handlers defined by rack. Handlers are added to @handlers by the register method.
+@handlers is a hash contains all the server handlers defined by rack. Handlers are added to @handlers by the register method.
 
 ```ruby
   def self.get(server)
     return unless server
     server = server.to_s
-  
+
     if klass = @handlers[server]
       obj = Object
       klass.split("::").each { |x| obj = obj.const_get(x) }
@@ -247,11 +247,11 @@ Then it tries to get a rack compatible server to run the app by calling `detect_
     @handlers ||= {}
     @handlers[server] = klass
   end
-```  
+```
 
 Following is how register is called and a list of all handlers
 
-```ruby 
+```ruby
   register 'cgi', 'Rack::Handler::CGI'
   register 'fastcgi', 'Rack::Handler::FastCGI'
   register 'mongrel', 'Rack::Handler::Mongrel'
@@ -269,7 +269,7 @@ In the case of Rack::Handler.get('thin'), `@handlers[server]` is the string `'Ra
   require "thin"
   require "rack/content_length"
   require "rack/chunked"
-  
+
   module Rack
     module Handler
       class Thin
@@ -294,7 +294,7 @@ Let's return to the `run!` method on Sinatra::Base. It outputs the information a
     [:INT, :TERM].each { |sig| trap(sig) { quit!(server, handler_name) } }
     set :running, true
   end
-```  
+```
 
 ```ruby
   def quit!(server, handler_name)
@@ -302,8 +302,8 @@ Let's return to the `run!` method on Sinatra::Base. It outputs the information a
     server.respond_to?(:stop!) ? server.stop! : server.stop
     puts "\n== Sinatra has ended his set (crowd applauds)" unless handler_name =~/cgi/i
   end
-```  
+```
 
-To sum, the sinatra DSL is available to our app through method delegation to Sinatra::Application. The server is started by passing Sinatra::Application to a rack server. Although we define routes in our app, everything happens in Sinatra::Application.
+To sum up the sinatra DSL is available to our app through method delegation to Sinatra::Application. The server is started by passing Sinatra::Application to a rack server. Although we define routes in our app, everything happens in Sinatra::Application.
 
 This concludes our first tutorial. There are still some topics need to be talked about the server, like how requests are picked up by the server and passed to our app. We will resolve this in later tutorials. In tutorial_2.rb, we will look at high level architecture of sinatra apps and the code that support it, including other forms of sinatra apps, sinatra extensions and middleware.

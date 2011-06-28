@@ -62,7 +62,7 @@ Similarly other http methods are defined.
 
 Before we delve into the route method, let's look at the methods it uses.
 
-`Sinatra::Base.host_name` is a private method that defines a routing condition by using the `condition` method we just discussed. If you look at the source code annotation for the condition method: "The route is considered non-matching when the block returns false", we can know that if the block { pattern === request.host } returns true, then the condition is considered satisfied, and vice versa. In the block, it references request, which is is an attr_accessor on Sinatra::Base, and an instance of the `Sinatra::Request < Rack::Request`. We will look at Sinatra::Request in detail in other tutorials. `request.host` is the host part without port number of user's requested url. As an simple example, if we specify a host option in the get like `get '/', :host => 'test.smokyapp.com'`, it will only match the route '/' if the request is something like http://test.smokyapp.com. It will not match '/' if the request is http://test2.smokyapp.com. So when `host_name` is called with a regular expression as the path pattern, proc{ pattern === request.host } will be added to the @conditions.
+`Sinatra::Base.host_name` is a private method that defines a routing condition by using the `condition` method we just discussed. If you look at the source code annotation for the condition method: "The route is considered non-matching when the block returns false", we can know that if the block { pattern === request.host } returns true, then the condition is considered satisfied, and vice versa. In the block, it references request, which is an attr_accessor on Sinatra::Base, and an instance of the `Sinatra::Request < Rack::Request`. We will look at Sinatra::Request in detail in other tutorials. `request.host` is the host part without port number of user's requested url. As a simple example, if we specify a host option in the get like `get '/', :host => 'test.smokyapp.com'`, it will only match the route '/' if the request is something like http://test.smokyapp.com. It will not match '/' if the request is http://test2.smokyapp.com. So when `host_name` is called with a regular expression as the path pattern, proc{ pattern === request.host } will be added to the @conditions.
 
 ```ruby
   # Condition for matching host name. Parameter might be String or Regexp.
@@ -71,7 +71,7 @@ Before we delve into the route method, let's look at the methods it uses.
   end
 ```
 
-Next is the enable method. As we have seen in tutorial 1, it's a class method in Sinatra::Base and is delegated in Sinatra::Delegator. It's just a convenient method to the `set` method that sets a array of settings as true.
+Next is the enable method. As we have seen in tutorial 1, it's a class method in Sinatra::Base and is delegated in Sinatra::Delegator. It's just a convenient method to the `set` method that sets an array of settings as true.
 
 ```ruby
   # Same as calling `set :option, true` for each of the given options.
@@ -82,7 +82,7 @@ Next is the enable method. As we have seen in tutorial 1, it's a class method in
 
 One interesting thing to note is that in sinatra/sinatra.rb, `enable :inline_templates` is called so it defines `inline_templates=` on the singleton class of Sinatra::Base, but Sinatra::Base also defines `inline_templates=` class method itself. As we know class methods are actually methods defined on class's singleton class. The `inline_templates=` defined by Sinatra::Base will overwrite the one defined by `enable :inline_templates`.
 
-Now we know what does the enable method do, we come back to the route method. We've already seen host_name defines a routing condition. Then it calls `enable :empty_path_info`, i.e., set empty_path_info to true to if the path param is an empty string and if `empty_path_info` setting is not already true. Note `set :empty_path_info, nil` is called Sinatra::Base's class definition, so by default empty_path_info is nil. empty_path_info is set to true the first time you give give an empty string as the path param. Then as we can see later when routing is processed if empty_path_info is true it will use '/' as the route.
+Now we know what the enable method does, we come back to the route method. We've already seen host_name defines a routing condition. Then it calls `enable :empty_path_info`, i.e., set empty_path_info to true to if the path param is an empty string and if `empty_path_info` setting is not already true. Note `set :empty_path_info, nil` is called Sinatra::Base's class definition, so by default empty_path_info is nil. empty_path_info is set to true the first time you give an empty string as the path param. Then as we can see later when routing is processed if empty_path_info is true it will use '/' as the route.
 
 Next the Sinatra::Base.compile! is called with all the params passed to route.
 
@@ -104,7 +104,7 @@ Next the Sinatra::Base.compile! is called with all the params passed to route.
   end
 ```
 
-You may wonder what does the `options.each_pair` do. For each element of the option hash, i.e. the condition hash like `:host_name => /^admin\./`, it calls the method with the key as the method name and the value as the parameters to the method. It turns out it's one usage of the `set` method. Take an example from Sinatra doc:
+You may wonder what the `options.each_pair` does. For each element of the option hash, i.e. the condition hash like `:host_name => /^admin\./`, it calls the method with the key as the method name and the value as the parameters to the method. It turns out it's one usage of the `set` method. Take an example from Sinatra doc:
 
 ```ruby
 set(:probability) { |value| condition { rand <= value } }
@@ -115,7 +115,7 @@ end
 
 Here we first use set to define a routing condition named probability. A method named `probability` is defined on the singleton class on Sinatra::Base. When we pass the :probability => 0.1 as the option to `get`, 0.1 is passed in as the value parameter to the block, and then a condition is set by adding the { rand <= 0.1 } to the @conditions. Using set with a block that contains a condition makes the condition reusable.
 
-Next it defines a method with method names like "GET /" and with the method body as the block passed in. The method are defined as class methods on Sinatra::Base. The line unbound_method = instance_method method_name is interesting. Before I see it I only know instance_method can extract an unbound method from a class's instance methods. But it actually just finds and extracts a method from the current scope, no matter it's an instance method or a class methods. Here we extract the method that's just defined to the local variable unbound_method. The method is later removed with remove_method method_name. Before we look into why it does that, let's first look at the `compile` method. The `compile(path)` returns an array with two elements path and keys. As we can see path and keys are return from the `compile` method and are stored as part of the route information. Let's see what does `compile` do in detail.
+Next it defines a method with method names like "GET /" and with the method body as the block passed in. The method is defined as class methods on Sinatra::Base. The line unbound_method = instance_method method_name is interesting. Before I see it I only know instance_method can extract an unbound method from a class's instance methods. But it actually just finds and extracts a method from the current scope, no matter it's an instance method or a class methods. Here we extract the method that's just defined to the local variable unbound_method. The method is later removed with remove_method method_name. Before we look into why it does that, let's first look at the `compile` method. The `compile(path)` returns an array with two elements path and keys. As we can see path and keys are returned from the `compile` method and are stored as part of the route information. Let's see what does `compile` do in detail.
 
 According to the method, the path can be of 4 forms: it responds to to_str, indicating it's a string, responds to keys and match, responds to names and match, and responds to match only, indicating it's a regular expression.
 
@@ -325,7 +325,7 @@ Next let's look at the `invoke_hook` method. The first argument name is :route_a
   end
 ```
 
-Then the the `route` method add the array [pattern, keys, conditions, block] to the @routes hash which is keyed on the HTTP verb like 'GET', 'POST', 'HEAD' etc, and returns the [pattern, keys, conditions, block] as the result of the `route` method. With the same conditions a HEAD route is added.
+Then the`route` method adds the array [pattern, keys, conditions, block] to the @routes hash which is keyed on the HTTP verb like 'GET', 'POST', 'HEAD' etc, and returns the [pattern, keys, conditions, block] as the result of the `route` method. With the same conditions a HEAD route is added.
 
 Let's see an example of the routes added.
 
@@ -421,7 +421,7 @@ It first make a copy of `@params`. We can see `@params` is assigned back to `ori
   end
 ```
 
-`params` is assigned in the `Sinatra::Base#call!` method: `@params = indifferent_params(@request.params)`. We've seen `call!` is run when a request comes in and our app is initialized. `@request` is an instance of Sinatra::Request and is also an attr_accessor on Sinatra::Base. `@request.params` just returns an hash of parameters passed in by the request. For example in the request to `http://127.0.0.1:4567/?a[name]=1&b=2` the request.params is `{"a"=>{"name"=>"1"}, "b"=>"2"}`. In `indifferent_params` an `indifferent_hash` is called and returns a hash that will automatically convert symbol key to string key when accessing it. We merge the params to that hash so we can access the top level params with both symbol key and string key. Next params is looped and convert the nested params using `indifferent_params`.
+`params` is assigned in the `Sinatra::Base#call!` method: `@params = indifferent_params(@request.params)`. We've seen `call!` is run when a request comes in and our app is initialized. `@request` is an instance of Sinatra::Request and is also an attr_accessor on Sinatra::Base. `@request.params` just returns a hash of parameters passed in by the request. For example in the request to `http://127.0.0.1:4567/?a[name]=1&b=2` the request.params is `{"a"=>{"name"=>"1"}, "b"=>"2"}`. In `indifferent_params` an `indifferent_hash` is called and returns a hash that will automatically convert symbol key to string key when accessing it. We merge the params to that hash so we can access the top level params with both symbol key and string key. Next params is looped and convert the nested params using `indifferent_params`.
 
 ```ruby
   # Enable string or symbol key access to the nested params hash.
@@ -523,7 +523,7 @@ def get?;     request_method == "GET"     end
 def head?;    request_method == "HEAD"    end
 ```
 
-In `static!` the first line double check settings.public is not nil. You may wonder that `settings.public` should not be nil since `static!` is already called. otherwise `static?` would return false. However it's possible after the current app is run we monkeypatch the app and set the public to nil. So the check is necessary.
+In `static!` the first line double-checks settings.public is not nil. You may wonder that `settings.public` should not be nil since `static!` is already called. otherwise `static?` would return false. However it's possible after the current app is run we monkeypatch the app and set the public to nil. So the check is necessary.
 
 If `public` exists, we construct the absolute path to the `path_info` by combining the absolute path to the public folder and the unescaped `request.path_info`. Note unescaped is imported to Sinatra::Base by `include Rack::Utils`. The check of `path.start_with?(public_dir)` is important because we don't want the any request to access files outside the public folder. For example the request can be '/../../../etc/passwd'. If the file exists。 then we set the env['sinatra.static_file'] to the path to the file, and use `send_file` to generate the response object. `send_file` is inside the Sinatra::Helper. We will learn it in later tutorials. Note even the requested file is found it's not the end; we still need to run `filter!` and `route!`
 
@@ -542,7 +542,7 @@ If `public` exists, we construct the absolute path to the `path_info` by combini
   end
 ```
 
-Then `Sinatra::Base#filter!` is run. We pass in :before as the first parameter, which means we want the before filters run. The `filter!` iteratively gets the before filters on current app and all it's superclasses' and evaluates them on the instance level of current app, i.e. `process_route(*arguments) { instance_eval(&block) }` will be run. We already know `process_route` stuffs the params hash, and run the block if a route is matched.
+Then `Sinatra::Base#filter!` is run. We pass in :before as the first parameter, which means we want the before filters run. The `filter!` iteratively gets the before filters on current app and all its superclasses and evaluates them on the instance level of current app, i.e. `process_route(*arguments) { instance_eval(&block) }` will be run. We already know `process_route` stuffs the params hash, and run the block if a route is matched.
 
 ```ruby
   # Run filters defined on the class and all superclasses.

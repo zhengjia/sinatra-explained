@@ -2,7 +2,7 @@ In this tutorial, we will look at different styles of sinatra app, sinatra exten
 
 In tutorial_1 we learned the basic form of sinatra apps: require the sinatra library and define routes directly in the same file. This is referred to as the "classic" style (see classic.rb). The other style is called "modular" style (see modular.rb).
 
-Let's see an example of a modular app. In modular.rb, first Sinatra::Base is imported by `require 'sinatra/base'`. We define our app inside the Modular class, which is a subclass of Sinatra::Base. When subclassing `Sinatra::Base.inherited` is triggered and it calls the `subclass.reset!`. Note `subclass.reset!` is calling the inherited `Sinatra::Base.reset!`. Even the subclass has its own reset! method it won't be called because the content of the subclass is empty at this point. The `inherited` method then calls `super` which triggers the `inherited` method on the super class if there is one. In the case of our Modular class, it inherits from Sinatra::Base, which doesn't inherit from other classes, so the the super in the `inherited` method does not do anything. If another app Modular2 inherits from class AnotherClass that in turn inherits from Sinatra::Base, then the `inherits` method on Sinatra::Base would first reset AnotherClass; after AnotherClass is defined, Modular2 is reset by calling AnotherClass.reset!. 
+Let's see an example of a modular app. In modular.rb, first Sinatra::Base is imported by `require 'sinatra/base'`. We define our app inside the Modular class, which is a subclass of Sinatra::Base. When subclassing `Sinatra::Base.inherited` is triggered and it calls the `subclass.reset!`. Note `subclass.reset!` is calling the inherited `Sinatra::Base.reset!`. Even the subclass has its own reset! method it won't be called because the content of the subclass is empty at this point. The `inherited` method then calls `super` which triggers the `inherited` method on the super class if there is one. In the case of our Modular class, it inherits from Sinatra::Base, which doesn't inherit from other classes, so the super in the `inherited` method does not do anything. If another app Modular2 inherits from class AnotherClass that in turn inherits from Sinatra::Base, then the `inherits` method on Sinatra::Base would first reset AnotherClass; after AnotherClass is defined, Modular2 is reset by calling AnotherClass.reset!.
 
 ```ruby
   def inherited(subclass)
@@ -36,7 +36,7 @@ so multiple apps subclassing from Sinatra::Base may share states, which we don't
   end
 ```
 
-We continue to look at the route definition in modular.rb. We define routes as instance methods inside the Modular class. It makes perfect sense because the route definition methods like `get` are defined as class methods on Sinatra::Base, so they are available in the class scope on the Modular. 
+We continue to look at the route definition in modular.rb. We define routes as instance methods inside the Modular class. It makes perfect sense because the route definition methods like `get` are defined as class methods on Sinatra::Base, so they are available in the class scope on the Modular.
 
 Next let's see how to start a modular app. There are two ways. First we can use the `run!` method as we talked in tutorial_1 and just throw it in after the routes like this:
 
@@ -52,7 +52,7 @@ end
 
 Then `run!` will fire up a rack handler by calling its run method and pass in `self`, i.e. Sinatra::Base.
 
-Second, we can use a ru file to start it. A ru file is also called the rackup file that is used to configure for example the rack middlware, mapping url to rack endpoints, and start the rack server etc. We will just use the very basic ru file for now. If you look at modular.ru, we just require the modular app we defined and call `Rack::Builder.run` with Sinatra::Base or Modular as the parameter. 
+Second, we can use a ru file to start it. A ru file is also called the rackup file that is used to configure for example the rack middlware, mapping url to rack endpoints, and start the rack server etc. We will just use the very basic ru file for now. If you look at modular.ru, we just require the modular app we defined and call `Rack::Builder.run` with Sinatra::Base or Modular as the parameter.
 
 ```ruby
 require File.expand_path(File.dirname(__FILE__) + '/modular')
@@ -62,11 +62,11 @@ run Sinatra::Base
 
 Of course we can have a ru file for classic sinatra app like classic.ru.
 
-Here it's a bit different from how we run a regular rack app. Normally a rack app is a class that has an instance method `call`.  handler would expect an instance of a rack app; when we run the rack app, we make a instance of the class and run it like this `run SomeRackApp.new`. In ru file we run the class like run Modular instead of the instance of the class. We will see why is that later in this tutorial.
+Here it's a bit different from how we run a regular rack app. Normally a rack app is a class that has an instance method `call`.  handler would expect an instance of a rack app; when we run the rack app, we make an instance of the class and run it like this `run SomeRackApp.new`. In ru file we run the class like run Modular instead of the instance of the class. We will see why is that later in this tutorial.
 
-Now we finish the definition of a modular app, and our conclusion is that the modular style apps have nothing to do with the Sinatra::Application. A modular app is self-contained in its own scope. As a contrast the classic style app delegates it's calls to Sinatra::Application, the subclass of Sinatra::Base.
+Now we finish the definition of a modular app, and our conclusion is that the modular style apps have nothing to do with the Sinatra::Application. A modular app is self-contained in its own scope. As a contrast the classic style app delegates its calls to Sinatra::Application, the subclass of Sinatra::Base.
 
-There is a third way of defining a sinatra app. Sinatra.new overrides Object.new. It takes a base class , and a options hash, and a block as parameters. It looks like the options hash is never used though. The base defaults to Sinatra::Base, which makes the app an modular app, and also can be Sinatra::Application, which makes the app an classic app. Nothing special with this form, just a syntactic sugar.
+There is a third way of defining a sinatra app. Sinatra.new overrides Object.new. It takes a base class , and a options hash, and a block as parameters. It looks like the options hash is never used though. The base defaults to Sinatra::Base, which makes the app a modular app, and also can be Sinatra::Application, which makes the app a classic app. Nothing special with this form, just a syntactic sugar.
 
 ```ruby
   def self.new(base=Base, options={}, &block)
@@ -149,7 +149,7 @@ Following code is in sinatra/lib/sinatra/base.rb. Let's look at it in detail. `s
   end
 ```
 
-The definitions of development?, test?, production? are pretty simple. The environment is another setting `set :environment, (ENV['RACK_ENV'] || :development).to_sym`, which will default to 'development' if ENV['RACK_ENV'] is not set. 
+The definitions of development?, test?, production? are pretty simple. The environment is another setting `set :environment, (ENV['RACK_ENV'] || :development).to_sym`, which will default to 'development' if ENV['RACK_ENV'] is not set.
 
 ```ruby
   def development?; environment == :development end
@@ -157,7 +157,7 @@ The definitions of development?, test?, production? are pretty simple. The envir
   def test?;        environment == :test        end
 ```
 
-`set :method_override, true` will determine whether the sinatra app will use `Rack::MethodOverride` as a middleware. What Rack::MethodOverride does is just detect the _method param passed in by browsers to support HTTP method like PUT and DELETE. 
+`set :method_override, true` will determine whether the sinatra app will use `Rack::MethodOverride` as a middleware. What Rack::MethodOverride does is just detect the _method param passed in by browsers to support HTTP method like PUT and DELETE.
 
 `set :run, Proc.new { ! test? }` defines the run setting. As we have seen in sinatra/lib/sinatra/main.rb the line `set :run, Proc.new { $0 == app_file }` has already set the `run` setting; the run setting is set twice in two spots. And why Sinatra::Application is separated in two files in the first place? Users can do something like in classic_2.rb, which is also a classic sinatra app. The difference than classic.rb is that in classic_2.rb you have to do `include Sinatra::Delegator` and run the server by calling `Sinatra::Application.run!` explicitly. Let's look back at the Sinatra::Application in sinatra/lib/sinatra/main.rb. What it does is just parsing the command line arguments and run the server. So we can think sinatra/lib/sinatra/main.rb is just a convenient way of defining a sinatra app and get it running. Back to our original question, the reason that `run` is set twice is that they are used in different context. The `set :run, Proc.new { ! test? }` will be overridden if sinatra/lib/sinatra/main.rb is required after sinatra/lib/sinatra/base.rb, and by setting the `run` as true if it's not test environment, it will prevent another classic sinatra app from running.
 
@@ -176,7 +176,7 @@ Now let's see the `Sinatra::Applocation.register`. To summarize what it does, it
   end
 ```
 
-The register method on Sinatra::Base basically extends all the extensions, i.e. add the instance methods of the extensions as class methods to Sinatra::Base. If any blocks are passed in to the register method, the methods defined inside the blocks are also added as class methods to Sinatra::Base. It then calls the `registered` method on each of the extensions as sort of callbacks. Note the self i.e. the current class is passed to the `registered` method. So if an extension defines a `registered` class method, it can do something with the current app like set some settings, define some routes etc. 
+The register method on Sinatra::Base basically extends all the extensions, i.e. add the instance methods of the extensions as class methods to Sinatra::Base. If any blocks are passed in to the register method, the methods defined inside the blocks are also added as class methods to Sinatra::Base. It then calls the `registered` method on each of the extensions as sort of callbacks. Note the self i.e. the current class is passed to the `registered` method. So if an extension defines a `registered` class method, it can do something with the current app like set some settings, define some routes etc.
 
 A sinatra app uses an @extension instance variable to store all the extensions that are used in the current app. `extension` method gets all its super classes' extensions including its own extensions, which means all extensions used by super classes are added as class methods to the current app.
 
@@ -191,7 +191,7 @@ A sinatra app uses an @extension instance variable to store all the extensions t
   end
 ```
 
-Let's see what an sinatra extension looks like. A sinatra extension is just a module with sinatra DSL available to it. I take an example from sinatra documentation.
+Let's see what a sinatra extension looks like. A sinatra extension is just a module with sinatra DSL available to it. I take an example from sinatra documentation.
 
 ```ruby
 require 'sinatra/base'
@@ -243,7 +243,7 @@ end
 
 Here the `regisiter` method in the extension doesn't have effect to the modular app in that they are not in the same scope. So the modular app calls the register method on Sinatra::Base which defines `block_links_from` as class methods on Sinatra::Base.
 
-Now we know the `register` and extensions, it's easier to understand a similar concept sinatra Helpers. 
+Now we know the `register` and extensions, it's easier to understand a similar concept sinatra Helpers.
 
 ```ruby
 # Makes the methods defined in the block and in the Modules given
@@ -256,7 +256,7 @@ end
 
 As you may already guess `helpers` just add the instance methods on extensions as well as the methods defined in the block passed to helpers method call as instance methods to the current app so that they can be used in routing handlers, filters, templates and other helpers etc.
 
-Let's explore the question we just asked: why we do `run Modular` instead of `run Modular.new` in the ru file. Let's see how an sinatra app acts as a rack app. By rack app I mean the class that defines the rack app. We know an instance of rack app responds to call method. Take our modular.rb as an example, rack handler would expect Modular.new responds to `call`. There are several call methods defined on Sinatra::Base. First one is an instance method that is used as the regular rack interface. It duplicates the instance of current app and call the `call!` method, which is the actual place requests are routed and response is generated. `call!` is a rather long method and we will explain it in detail in later tutorials. So our app does have a `call` instance method.
+Let's explore the question we just asked: why we do `run Modular` instead of `run Modular.new` in the ru file. Let's see how a sinatra app acts as a rack app. By rack app I mean the class that defines the rack app. We know an instance of rack app responds to call method. Take our modular.rb as an example, rack handler would expect Modular.new responds to `call`. There are several call methods defined on Sinatra::Base. First one is an instance method that is used as the regular rack interface. It duplicates the instance of current app and call the `call!` method, which is the actual place requests are routed and response is generated. `call!` is a rather long method and we will explain it in detail in later tutorials. So our app does have a `call` instance method.
 
 ```ruby
   # Rack call interface.
@@ -265,7 +265,7 @@ Let's explore the question we just asked: why we do `run Modular` instead of `ru
   end
 ```
 
-Before we continue, why the current app needs to be duplicated before routes are processed and response is generated? We know `dup` method make a copy of all instance variables, so apparently we are trying to avoid messing up the instance variables here. How instance variables can be possibly messed up? 
+Before we continue, why the current app needs to be duplicated before routes are processed and response is generated? We know `dup` method make a copy of all instance variables, so apparently we are trying to avoid messing up the instance variables here. How instance variables can be possibly messed up?
 
 I am not really sure at this time. This is when tests may help to figure out. So I remove the dup and run the test with `rack test`. The modified `call` method is like this:
 
@@ -312,9 +312,9 @@ This is how TestApp defined:
   end
 ```
 
-The failure is cased because the @foo instance variable is shared between two requests. On the first request, @foo is assigned to "discard" after the request is processed; on the second request, since @foo has a value, it's not assigned to "new" again. Now we know the cause of the failure, it's clear that the `dup` method makes sure that each request has its own set of instance variables. 
+The failure is because the @foo instance variable is shared between two requests. On the first request, @foo is assigned to "discard" after the request is processed; on the second request, since @foo has a value, it's not assigned to "new" again. Now we know the cause of the failure, it's clear that the `dup` method makes sure that each request has its own set of instance variables.
 
-There is another `call` class method on Sinatra::Base. Remember in the ru file, we run the app by something like `run Sinatra::Base`. The rack handler actually calls this `call` method. 
+There is another `call` class method on Sinatra::Base. Remember in the ru file, we run the app by something like `run Sinatra::Base`. The rack handler actually calls this `call` method.
 
 ```ruby
   def call(env)
@@ -337,7 +337,7 @@ It uses the `synchronize` method on Sinatra::Base. Mutex is imported by `require
 
 We can see that if the lock? setting is true, then it will use Mutex#synchronize method to place a lock on every request to avoid race conditions among threads. If your sinatra app is multithreaded and not thread safe, or any gems you use is not thread safe, you would want to do `set :lock, true` so that only one request is processed at a given time. I don't have a good example for demonstration at the moment. Otherwise by default `lock` is false, which means the `synchronize` would yield to the block directly.
 
-Inside the block, the class method call uses `prototype` method. 
+Inside the block, the class method call uses `prototype` method.
 
 ```ruby
   # The prototype instance used to process requests.
@@ -346,7 +346,7 @@ Inside the block, the class method call uses `prototype` method.
   end
 ```
 
-Inside the `prototype` method it calls the `new` method if our app isn't already initialized. The `Sinatra::Base.new` uses the `build` method to initialize a middleware stack that is used to process requests.   
+Inside the `prototype` method it calls the `new` method if our app isn't already initialized. The `Sinatra::Base.new` uses the `build` method to initialize a middleware stack that is used to process requests.
 
 ```ruby
   # Create a new instance of the class fronted by its middleware
@@ -356,8 +356,8 @@ Inside the `prototype` method it calls the `new` method if our app isn't already
     build(*args, &bk).to_app
   end
 ```
-  
-We can see the the build method first initializes a Rack::Builder. 
+
+We can see the build method first initializes a Rack::Builder.
 
 ```ruby
   # Creates a Rack::Builder instance with all the middleware set up and
@@ -378,14 +378,14 @@ To understand what the build method does, I list an abridged version of Rack::Bu
 
 ```ruby
   module Rack
-  
+
     class Builder
 
       def initialize(&block)
         @ins = []
         instance_eval(&block) if block_given?
       end
-      
+
       def self.app(&block)
         self.new(&block).to_app
       end
@@ -397,7 +397,7 @@ To understand what the build method does, I list an abridged version of Rack::Bu
       def run(app)
         @ins << app #lambda { |nothing| app }
       end
-      
+
       def map(path, &block)
         if @ins.last.kind_of? Hash
           @ins.last[path] = self.class.new(&block).to_app
@@ -426,9 +426,9 @@ Note here `builder.use ShowExceptions if show_exceptions?` is calling Rack::Buil
     @prototype = nil
     @middleware << [middleware, args, block]
   end
-```  
-  
-So Sinatra::Base.use collects an array of [middleware, args, block] and store it in @middleware. 
+```
+
+So Sinatra::Base.use collects an array of [middleware, args, block] and store it in @middleware.
 
 Then we come to this line: `middleware.each { |c,a,b| builder.use(c, *a, &b) }`. For each of the middleware in the @middleware we call Rack::Builder#use to use it. The question is instead of using Rack::Builder#use directly, why do we have an additional step? This is because when we use a new middleware in our sinatra app we want to re-initialize our app so the middleware stack can be rebuilt without restarting the app.
 
@@ -460,7 +460,7 @@ setup_sessions just uses the Rack::Session::Cookie middleware if sessions settin
   end
 ```
 
-Next `builder.run new!(*args, &bk)` calls the `new!` method, which is an alias method of original `new` method. It just create an instance of the current app without building the middleware stack. So the parameter passed to `builder.run` is an instance of of our app. 
+Next `builder.run new!(*args, &bk)` calls the `new!` method, which is an alias method of original `new` method. It just create an instance of the current app without building the middleware stack. So the parameter passed to `builder.run` is an instance of of our app.
 
 ```ruby
   # Create a new instance without middleware in front of it.
@@ -481,10 +481,10 @@ Rack::Builder.app do
 end
 ```
 
-The `Rack::Builder.app` take a block and initialize a Rack::Builder instance, evaluate the block on Rack::Builder, and convert the Rack::Builder instance to a middleware stack with the `to_app` method. Let's see the `Rack::Builder#map` method inside the block. It takes a path parameter and a block. If first check whether the last element is a hash. In our case it is not. If it's not it will make add a empty hash as the last element of @ins, and then call itself `map(path, &block)`. Now the last element is a hash, so it will key on the path parameter and the value is a middleware stack by evaluating the block on Rack::Builder and call `to_app`. 
+The `Rack::Builder.app` take a block and initialize a Rack::Builder instance, evaluate the block on Rack::Builder, and convert the Rack::Builder instance to a middleware stack with the `to_app` method. Let's see the `Rack::Builder#map` method inside the block. It takes a path parameter and a block. If first check whether the last element is a hash. In our case it is not. If it's not it will make add an empty hash as the last element of @ins, and then call itself `map(path, &block)`. Now the last element is a hash, so it will key on the path parameter and the value is a middleware stack by evaluating the block on Rack::Builder and call `to_app`.
 
 Back to the ru file, it uses Middleware1 at the top, and the remaining is a just a hash. Then back to the `to_app` method. If the last element of @ins is a hash, it will initialize a Rack::URLMap, which basically does the routing directly in the ru file based on the key of the hash, i.e. the path parameter.
 
-In conclusion the `builder` method ends up with a array with an instance of current app as the last element; `Sinatra::Base.new` ends up with a middleware stack, and the Sinatra::Base.call ends up to `Sinatra::Base#call`.
+In conclusion the `builder` method ends up with an array with an instance of current app as the last element; `Sinatra::Base.new` ends up with a middleware stack, and the Sinatra::Base.call ends up to `Sinatra::Base#call`.
 
 In the next tutorial, let's see how routing is done.
