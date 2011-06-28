@@ -95,7 +95,7 @@ Since we are here let's look at other class methods defined on the Sinatra modul
   end
 ```
 
-They are just convenient methods that are delegating the `register`, `helpers` and `use` methods to the classic form app. We will see what the three methods in later tutorials.
+They are just convenient methods that are delegating the `Sinatra.register`, `Sinatra.helpers` and `Sinatra.use` methods to the classic form app.
 
 As we discussed Sinatra::Application is split in two files. Let's list the full Sinatra::Application code here. Following code is in sinatra/lib/sinatra/main.rb, which we already discussed in detail in tutorial_1.
 
