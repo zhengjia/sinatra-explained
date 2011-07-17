@@ -552,7 +552,7 @@ Then `Sinatra::Base#filter!` is run. We pass in :before as the first parameter, 
   end
 ```
 
-After before filters are run, `route!` is run on the current class and all superclasses.
+After before filters are run, `route!` is called. It first tries to match routes defined in the current class. We have already learned `process_route` will yield to the block if it finds a matching route; so  and all superclasses if a route in the current class can be matched. Otherwise we the superclasses of the current class and try to find a matching route on the superclass.
 
 ```ruby
   # Run routes defined on the class and all superclasses.
@@ -577,7 +577,7 @@ After before filters are run, `route!` is run on the current class and all super
 Based on the `Rack::Request#request_method`, it gets the corresponding values of the @routes hash, and calls `process_route` on each of the routes.
 
 ```ruby
-def request_method;  @env["REQUEST_METHOD"] end
+  def request_method;  @env["REQUEST_METHOD"] end
 ```
 
 If a route is matched, `route_eval` is called, which evaluates the route processing proc and throws :halt with the result of the `instance_eval(&block)`.
@@ -625,3 +625,32 @@ The :halt terminates further processing of other possible routes. :halt is caugh
     res
   end
 ```
+
+The `route!` is called recursively on superclass until a route is found or the superclass does respond to the `routes` method, i.e it does not define routes. In that case `route_missing` is called. `route_missing` checks if the current app is a middleware of an inner app. If it is then it just forwards the request to the inner app and let the downstream app process the request. Otherwise it raise a NotFound exception as the response to the request. We will learn response in detail in the next tutorial.
+
+```ruby
+  # No matching route was found or all routes passed. The default
+  # implementation is to forward the request downstream when running
+  # as middleware (@app is non-nil); when no downstream app is set, raise
+  # a NotFound exception. Subclasses can override this method to perform
+  # custom route miss logic.
+  def route_missing
+    if @app
+      forward
+    else
+      raise NotFound
+    end
+  end
+```
+
+```ruby
+  # Forward the request to the downstream app -- middleware only.
+  def forward
+    fail "downstream app not set" unless @app.respond_to? :call
+    status, headers, body = @app.call env
+    @response.status = status
+    @response.body = body
+    @response.headers.merge! headers
+    nil
+  end
+```  
