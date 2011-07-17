@@ -1,7 +1,7 @@
-I write this while I dig into sinatra source code myself. Please correct me if you find any mistakes or unclarity. Since Sinatra is short and concise, I hope the tutorial makes sense and it can keep pace with sinatra development with contributions from the community. The tutorial is prepared based on Sinatra 1.3.0e.
+I write this while I dig into sinatra source code myself. Please correct me if you find any mistakes or unclarity. Since Sinatra is short and concise, I hope the tutorial makes sense and it can keep pace with sinatra development with contributions from the community. The tutorial is prepared based on Sinatra 1.3.0c.
 
 Sinatra is added as a git submodule in the sinatra folder.
-As this tutorial is for sinatra, I only list some relevant code based on rack 1.2.2 (https://github.com/rack/rack/tree/1.2.2).
+As this tutorial is for sinatra, I don't include the full rack source. I only list some relevant code based on rack 1.2.2 (https://github.com/rack/rack/tree/1.2.2).
 If you need I recommend to use tux to play with sinatra https://github.com/cldwalker/tux
 
 It's assumed that you have read the sinatra README. Sinatra is well documented so that's the only thing you need for this tutorial.
